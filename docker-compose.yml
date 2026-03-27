@@ -1,0 +1,58 @@
+name: ${PROJECT}
+
+services:
+  webserver:
+    # Le nom sera par exemple : core-webserver
+    image: wordpress:latest
+    container_name: ${PROJECT}-webserver
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./app:/var/www/html:cached # Ajusté pour correspondre au WORKDIR de FrankenPHP
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  db:
+    container_name: ${PROJECT}-mysql
+    image: mariadb:latest
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    command: --innodb-use-native-aio=0
+  
+  phpmyadmin:
+    container_name: ${PROJECT}-phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    depends_on:
+      - db
+    ports:
+      - "8000:80"
+    environment:
+      - PMA_HOST=${DB_HOST}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - PMA_USER=${DB_USER}
+      - PMA_PASSWORD=${DB_PASSWORD}
+      - PMA_ARBITRARY=1
+      - UPLOAD_LIMIT=300M
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: ${PROJECT}-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    
+volumes:
+  # Le nom du volume sera préfixé par le nom du projet
+  db-data:
