@@ -3,10 +3,10 @@
  * Template Name: Page Register
  */
 
-// if (is_user_logged_in()) {
-//     wp_redirect(home_url('/'));
-//     exit;
-// }
+if (is_user_logged_in()) {
+    wp_redirect(home_url('/'));
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
