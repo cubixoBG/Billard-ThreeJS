@@ -1,5 +1,6 @@
 <?php get_header(); ?>
 <link rel="stylesheet" href="<?php echo get_template_directory_uri(); ?>/assets/css/home.css">
+<link rel="stylesheet" href="<?php echo get_template_directory_uri(); ?>/style.css">
 
 <main class="flexcenter">
     <?php if (is_user_logged_in()):
