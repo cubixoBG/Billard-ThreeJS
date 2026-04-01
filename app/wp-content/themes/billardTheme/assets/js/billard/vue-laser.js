@@ -22,7 +22,7 @@ export function initLaser(scene, renderer, modelLoaded) {
         controls.target.copy(ballPos);
         controls.enablePan = false;
         controls.minDistance = 0.5;
-        controls.maxDistance = 0.5;
+        controls.maxDistance = 5;
         controls.maxPolarAngle = Math.PI / 2.05;
         controls.update();
 
