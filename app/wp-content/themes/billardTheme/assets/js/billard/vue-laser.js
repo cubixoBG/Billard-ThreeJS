@@ -14,17 +14,65 @@ export function initLaser(scene, renderer, modelLoaded) {
         const whiteBall = model.getObjectByName('Object_32');
         if (!whiteBall) return;
 
+        const tableRef = model.getObjectByName('Object_107') || model;
+        const tableBox = new THREE.Box3().setFromObject(tableRef);
+        const tableCenter = new THREE.Vector3();
+        tableBox.getCenter(tableCenter);
+        const tableSize = tableBox.getSize(new THREE.Vector3());
+
         const ballPos = new THREE.Vector3();
         whiteBall.getWorldPosition(ballPos);
 
-        // Positionnement initial
-        camera.position.set(ballPos.x, ballPos.y + 0.3, ballPos.z + 1);
-        controls.target.copy(ballPos);
-        controls.enablePan = false;
-        controls.minDistance = 0.5;
-        controls.maxDistance = 5;
-        controls.maxPolarAngle = Math.PI / 2.05;
-        controls.update();
+        let viewMode = 'ball';
+
+        const setBallView = () => {
+            window._cameraMode = 'ball';
+            whiteBall.getWorldPosition(ballPos);
+            camera.position.set(ballPos.x, ballPos.y + 0.3, ballPos.z + 1);
+            controls.target.copy(ballPos);
+            controls.enablePan = false;
+            controls.enableRotate = true;
+            controls.enableZoom = true;
+            controls.minDistance = 0.5;
+            controls.maxDistance = 5;
+            controls.maxPolarAngle = Math.PI / 2.05;
+            controls.update();
+        };
+
+        const setTopView = () => {
+            const offset = 5;
+            const angle = Math.PI / 4;
+
+            camera.position.set(
+                tableCenter.x + tableSize.x + offset,
+                tableCenter.y + tableSize.y + offset * Math.tan(angle),
+                tableCenter.z
+            );
+            controls.target.copy(tableCenter);
+
+            camera.up.set(0, 1, 0);
+            window._cameraMode = 'top';            controls.enableRotate = false;
+            controls.enablePan = true;
+            controls.enableZoom = true;
+            controls.minDistance = 2;
+            controls.maxDistance = 2;
+            controls.minPolarAngle = 0;
+            controls.maxPolarAngle = Math.PI / 2;
+            controls.update();
+        };
+        setBallView();
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key.toLowerCase() === 'c') {
+                if (viewMode === 'ball') {
+                    viewMode = 'top';
+                    setTopView();
+                } else {
+                    viewMode = 'ball';
+                    setBallView();
+                }
+            }
+        });
 
         // Shader Laser
         const laserMat = new THREE.ShaderMaterial({
