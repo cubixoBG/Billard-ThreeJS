@@ -3,12 +3,10 @@
  * Footer du thème Billard
  */
 ?>
-<!DOCTYPE html>
-<html <?php language_attributes(); ?>>
-<head>
-    <meta charset="<?php bloginfo('charset'); ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <footer class="flexcenter">
+        <p>&copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?>. Tous droits réservés.</p>
+    </footer>
+
     <?php wp_footer(); ?>
-</head>
-<body <?php body_class(); ?>>
-    <?php wp_body_open(); ?>>
+</body>
+</html>
