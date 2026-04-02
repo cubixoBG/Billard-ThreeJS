@@ -51,8 +51,9 @@ export function initLaser(scene, renderer, modelLoaded) {
             controls.target.copy(tableCenter);
 
             camera.up.set(0, 1, 0);
-            window._cameraMode = 'top';            controls.enableRotate = false;
-            controls.enablePan = true;
+            window._cameraMode = 'top';            
+            controls.enableRotate = false;
+            controls.enablePan = true;  
             controls.enableZoom = true;
             controls.minDistance = 2;
             controls.maxDistance = 2;
