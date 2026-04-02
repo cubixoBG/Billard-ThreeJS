@@ -1,7 +1,10 @@
 <?php
 /**
- * billard
+ * Template Name: Page Billard
  */
+// On récupère le champ ACF. 'options' est ajouté si ton champ est dans une page d'options ACF.
+$neon_text = get_field('neon_text_setting'); 
+if (!$neon_text) { $neon_text = 'BILLARD 3D'; }
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -20,6 +23,14 @@
             "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
         }
     }
+    </script>
+
+    <script>
+        // ON DÉCLARE LES SETTINGS ICI : C'est une balise script normale (pas module)
+        // pour qu'elle soit exécutée immédiatement et disponible pour les modules plus bas.
+        window.wpSettings = {
+            neonText: "<?php echo esc_js(strtoupper($neon_text)); ?>"
+        };
     </script>
 </head>
 
@@ -54,14 +65,12 @@
 
         const { camera, controls } = initLaser(scene, renderer, modelLoaded);
 
-        // ─── RESIZE ──────────────────────────────────────────────────
         window.addEventListener('resize', () => {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        // ─── ANIMATION ───────────────────────────────────────────────
         const clock = new THREE.Clock();
 
         function animate() {
@@ -81,7 +90,6 @@
             particles.rotation.y = t * 0.008;
             controls.update();
 
-            // ─── MISE À JOUR DU LASER ─────────────────────────────────
             if (window._laser) {
                 const { laser, laserMat, whiteBall } = window._laser;
                 const NB = window._NB_POINTS;
@@ -90,7 +98,6 @@
                 const ballPos = new THREE.Vector3();
                 whiteBall.getWorldPosition(ballPos);
 
-                // Calcul de la direction opposée à la caméra (vue subjective)
                 const dir = new THREE.Vector3();
                 dir.subVectors(ballPos, camera.position);
                 dir.y = 0.1;
@@ -113,5 +120,4 @@
     </script>
 
 </body>
-
 </html>

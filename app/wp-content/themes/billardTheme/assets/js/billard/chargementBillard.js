@@ -13,10 +13,85 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(container.clientWidth, container.clientHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputColorSpace = THREE.SRGBColorSpace; // Version Three.js récente
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.6;
 container.appendChild(renderer.domElement);
+
+// ─── TEXTURE CANVAS ─────────────────────────────────────
+function makeTextTexture(text) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2048;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.font = 'bold 160px "Segoe UI", Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#86efac';
+    ctx.shadowColor = '#86efac';
+    ctx.shadowBlur = 30;
+    
+    // On dessine 3 fois pour le glow
+    for (let i = 0; i < 3; i++) ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+}
+
+// ─── PANNEAU NÉON ───────────────────────────────────────────
+function createNeonTextPanel(position, rotationY) {
+    // Si wpSettings existe, on prend le texte, sinon valeur par défaut propre
+    const finalTxt = (window.wpSettings && window.wpSettings.neonText) 
+                     ? window.wpSettings.neonText 
+                     : 'BILLARD 3D';
+
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            uTime: { value: 0 },
+            uTexture: { value: makeTextTexture(finalTxt) },
+        },
+        transparent: true,
+        depthWrite: false,
+        vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform float uTime;
+            uniform sampler2D uTexture;
+            varying vec2 vUv;
+            void main() {
+                vec4 tex = texture2D(uTexture, vUv);
+                float glow = 0.85 + 0.15 * sin(uTime * 1.6);
+                float scanline = 0.96 + 0.04 * sin(vUv.y * 80.0 + uTime * 3.0);
+                vec3 color = tex.rgb * glow * scanline;
+                gl_FragColor = vec4(color, tex.a * 0.9);
+            }
+        `
+    });
+
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(7, 0.75), material);
+    mesh.position.copy(position);
+    mesh.rotation.y = rotationY;
+    scene.add(mesh);
+
+    const neonLight = new THREE.PointLight(0x86efac, 1.0, 5, 2);
+    neonLight.position.copy(position);
+    scene.add(neonLight);
+
+    return { mesh, neonLight };
+}
+
+const TEXT_Y = 1.3;
+export const allNeonMeshes = [
+    createNeonTextPanel(new THREE.Vector3(0, TEXT_Y, -8.8), 0),
+    createNeonTextPanel(new THREE.Vector3(0, TEXT_Y, 8.8), Math.PI),
+    createNeonTextPanel(new THREE.Vector3(-8.8, TEXT_Y, 0), Math.PI / 2),
+    createNeonTextPanel(new THREE.Vector3(8.8, TEXT_Y, 0), -Math.PI / 2),
+];
 
 // ─── SOL ─────────────────────────────────────────────────────
 const floor = new THREE.Mesh(
@@ -50,76 +125,6 @@ wallRight.rotation.y = -Math.PI / 2;
 wallRight.position.set(9, 5, 0);
 scene.add(wallRight);
 
-// ─── TEXTURE TEXTE CANVAS ────────────────────────────────────
-function makeTextTexture(text) {
-    const canvas = document.createElement('canvas');
-    canvas.width  = 2048;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = 'bold 160px "Segoe UI", Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#86efac';
-    ctx.shadowBlur  = 30;
-    ctx.fillStyle   = '#86efac';
-    for (let i = 0; i < 5; i++) ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-    return texture;
-}
-
-// ─── PANNEAU NÉON ────────────────────────────────────────────
-function createNeonTextPanel(position, rotationY) {
-    const material = new THREE.ShaderMaterial({
-        uniforms: {
-            uTime:    { value: 0 },
-            uTexture: { value: makeTextTexture('BILLARD 3D') },
-        },
-        vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform float uTime;
-            uniform sampler2D uTexture;
-            varying vec2 vUv;
-            void main() {
-                vec4 tex      = texture2D(uTexture, vUv);
-                float glow    = 0.88 + 0.12 * sin(uTime * 1.6);
-                float scanline= 0.96 + 0.04 * sin(vUv.y * 80.0 + uTime * 3.0);
-                float flicker = 0.97 + 0.03 * sin(uTime * 7.3);
-                vec3 color    = tex.rgb * glow * scanline * flicker * 1.3;
-                gl_FragColor  = vec4(color, tex.a * 0.92);
-            }
-        `,
-        transparent: true,
-        depthWrite: false,
-    });
-
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(7, 0.75), material);
-    mesh.position.copy(position);
-    mesh.rotation.y = rotationY;
-    scene.add(mesh);
-
-    const neonLight = new THREE.PointLight(0x86efac, 1.0, 5, 2);
-    neonLight.position.copy(position);
-    scene.add(neonLight);
-
-    return { mesh, neonLight };
-}
-
-const TEXT_Y = 1.3;
-export const allNeonMeshes = [
-    createNeonTextPanel(new THREE.Vector3(   0, TEXT_Y, -8.8),  0),
-    createNeonTextPanel(new THREE.Vector3(   0, TEXT_Y,  8.8),  Math.PI),
-    createNeonTextPanel(new THREE.Vector3(-8.8, TEXT_Y,  0),    Math.PI / 2),
-    createNeonTextPanel(new THREE.Vector3( 8.8, TEXT_Y,  0),   -Math.PI / 2),
-];
-
 // ─── LUMIÈRES ────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0x0a0f14, 0.8));
 
@@ -135,8 +140,8 @@ function createBilliardLamp(x, z) {
 }
 
 export const lamp1 = createBilliardLamp(0, -1.3);
-export const lamp2 = createBilliardLamp(0,  0);
-export const lamp3 = createBilliardLamp(0,  1.3);
+export const lamp2 = createBilliardLamp(0, 0);
+export const lamp3 = createBilliardLamp(0, 1.3);
 scene.add(lamp1, lamp2, lamp3);
 
 const rimLight = new THREE.DirectionalLight(0x3a5fff, 0.4);
@@ -147,7 +152,7 @@ scene.add(rimLight);
 const particleCount = 300;
 const pos = new Float32Array(particleCount * 3);
 for (let i = 0; i < particleCount; i++) {
-    pos[i * 3]     = (Math.random() - 0.5) * 18;
+    pos[i * 3] = (Math.random() - 0.5) * 18;
     pos[i * 3 + 1] = Math.random() * 8;
     pos[i * 3 + 2] = (Math.random() - 0.5) * 18;
 }
@@ -158,47 +163,26 @@ export const particles = new THREE.Points(particleGeo, new THREE.PointsMaterial(
 }));
 scene.add(particles);
 
-// ─── CHARGEMENT GLB ──────────────────────────────────────────
-const loadingBar    = document.getElementById('loading-bar');
-const loadingScreen = document.getElementById('loading');
-const modelUrl = document.getElementById('canvas-container').dataset.model;
-
+// ─── CHARGEMENT MODEL GLB ─────────────────────────────────────
+const modelUrl = container.dataset.model;
 export let model = null;
-
 export const modelLoaded = new Promise((resolve) => {
-    new GLTFLoader().load(
-        modelUrl,
-        (gltf) => {
-            model = gltf.scene;
-            const box    = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size   = box.getSize(new THREE.Vector3());
-            const scale  = 3.5 / Math.max(size.x, size.y, size.z);
+    new GLTFLoader().load(modelUrl, (gltf) => {
+        model = gltf.scene;
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const scale = 3.5 / Math.max(size.x, size.y, size.z);
 
-            model.scale.setScalar(scale);
-            model.position.sub(center.multiplyScalar(scale));
-            model.position.y = 0;
+        model.scale.setScalar(scale);
+        model.position.sub(center.multiplyScalar(scale));
+        model.position.y = 0;
 
-            model.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow    = true;
-                    node.receiveShadow = true;
-                    if (node.material) node.material.envMapIntensity = 0.4;
-                }
-            });
-
-            scene.add(model);
-            loadingBar.style.width = '100%';
-            setTimeout(() => loadingScreen.classList.add('hidden'), 600);
-            resolve(model);
-        },
-        (xhr) => {
-            if (xhr.lengthComputable)
-                loadingBar.style.width = (xhr.loaded / xhr.total * 100) + '%';
-        },
-        (err) => {
-            console.error('Erreur GLB :', err);
-            document.querySelector('.loading-text').textContent = 'Erreur de chargement.';
-        }
-    );
+        model.traverse(n => { if(n.isMesh) { n.castShadow = n.receiveShadow = true; }});
+        scene.add(model);
+        
+        const loaderScreen = document.getElementById('loading');
+        if (loaderScreen) loaderScreen.classList.add('hidden');
+        resolve(model);
+    });
 });
