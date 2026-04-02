@@ -1,0 +1,25 @@
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #080e08;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(0, 80, 20, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 50%, rgba(0, 60, 15, 0.08) 0%, transparent 55%);
+    color: white;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+.flexcenter {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
